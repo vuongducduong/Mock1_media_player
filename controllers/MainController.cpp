@@ -490,12 +490,14 @@ void MainController::updateViews() {
         case ScreenType::THIS_PC:
             songList->setSongs(pcSongs.getSongNames(),false);
             songList->setTitle("This PC - Songs");
+            songList->setCurrentPlayingIndex(pcSongs.getCurrentIndex());
             songList->draw();
             break;
             
         case ScreenType::USB:
             songList->setSongs(usbSongs.getSongNames(),false); // 
             songList->setTitle("USB - Songs");
+            songList->setCurrentPlayingIndex(usbSongs.getCurrentIndex());
             songList->draw();
             break;
             
@@ -508,6 +510,7 @@ void MainController::updateViews() {
         case ScreenType::PLAYLIST_SONGS:
             songList->setSongs(playlistSongs.getSongNames(),false);
             songList->setTitle("Playlist Songs "+playlistSongs.getFolder());
+            songList->setCurrentPlayingIndex(playlistSongs.getCurrentIndex());
             songList->draw();
             break;
         case ScreenType::ADD_PLAYLIST:

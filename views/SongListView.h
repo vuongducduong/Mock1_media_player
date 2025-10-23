@@ -13,6 +13,7 @@ private:
     int maxVisibleLines;
 
     bool reset=false;
+    int currentPlayingIndex = -1;
 
 public:
     SongListView(int h, int w, int y, int x);
@@ -36,6 +37,8 @@ public:
     // Check button clicks
     bool isPrevButtonClicked(int x, int y) const;
     bool isNextButtonClicked(int x, int y) const;
+
+    void setCurrentPlayingIndex(int index) { currentPlayingIndex = index; }
     
 private:
     void calculateMaxVisibleLines();

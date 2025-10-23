@@ -98,8 +98,9 @@ void SongListView::draw() {
         int maxNameWidth = width - 10;
         if ((int)displayName.length() > maxNameWidth)
             displayName = displayName.substr(0, maxNameWidth - 3) + "...";
-
+        if (i == currentPlayingIndex) wattron(window, A_UNDERLINE | A_BOLD);
         mvwprintw(window, y++, 4, "%2d. %s", i + 1, displayName.c_str());
+        if (i == currentPlayingIndex) wattroff(window, A_UNDERLINE | A_BOLD);
     }
     wnoutrefresh(window);
 }
