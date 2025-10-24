@@ -36,7 +36,7 @@ void PlaylistCollection::createPlaylist(const std::string& name,
     
     // Copy files từ PC và USB
     for (const auto& songInfo : songs) {
-        std::string sourceFolder = songInfo.isFromPC ? "./music" : "/music/usb";
+        std::string sourceFolder = songInfo.isFromPC ? "./music" : "./usb";
         std::string sourcePath = sourceFolder + "/" + songInfo.name;
         std::string destPath = playlistPath + "/" + songInfo.name;
         
@@ -122,7 +122,7 @@ void PlaylistCollection::updatePlaylist(int index, const std::string& name,
     
     // Copy files mới
     for (const auto& songInfo : songs) {
-        std::string sourceFolder = songInfo.isFromPC ? "./music" : "/music/usb";
+        std::string sourceFolder = songInfo.isFromPC ? "./music" : "./usb";
         std::string sourcePath = sourceFolder + "/" + songInfo.name;
         std::string destPath = newFolder + "/" + songInfo.name;
         

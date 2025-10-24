@@ -3,7 +3,7 @@
 MainController::MainController() 
     : currentScreen(ScreenType::MAIN_CONSOLE),
       pcSongs("./music"),
-      usbSongs("/music/usb") {
+      usbSongs("./usb") {
 }
 
 MainController::~MainController() {
