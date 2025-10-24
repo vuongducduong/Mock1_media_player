@@ -1,28 +1,28 @@
 #ifndef PLAYLIST_H
 #define PLAYLIST_H
 
-#include "SongCollection.h"
+#include "MediaManager.h"
 
 class Playlist {
 private:
-    std::string name;
+    std::string playlistName;
     std::string path;
-    SongCollection songs;
+    MediaManager mediaManager;
 
 public:
-    Playlist(const std::string& name, const std::string& basePath);
+    Playlist(const std::string& playlistName, const std::string& basePath);
     
-    const std::string& getName() const { return name; }
+    const std::string& getPlayListName() const { return playlistName; }
     const std::string& getPath() const { return path; }
     
     void create(const std::vector<std::string>& songFiles, 
                 const std::string& sourceFolder);
     void load();
     void remove();
-    void setName(const std::string& newName) { name = newName; } 
+    void setplaylistName(const std::string& newplaylistName) { playlistName = newplaylistName; } 
     
-    SongCollection& getSongs() { return songs; }
-    const SongCollection& getSongs() const { return songs; }
+    MediaManager& getMediaFiles() { return mediaManager; }
+    const MediaManager& getMediaFiles() const { return mediaManager; }
 };
 
 #endif

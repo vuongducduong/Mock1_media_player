@@ -1,8 +1,8 @@
 #ifndef PLAYERCONTROLLER_H
 #define PLAYERCONTROLLER_H
 
-#include "../models/AudioPlayerModel.h"
-#include "../models/SongCollection.h"
+#include "../models/MediaPlayer.h"
+#include "../models/MediaManager.h"
 #include <thread>
 #include <atomic>
 #include <memory>
@@ -10,17 +10,17 @@
 
 class PlayerController {
 private:
-    AudioPlayerModel* model;
-    SongCollection* currentCollection;
+    MediaPlayer* model;
+    MediaManager* currentCollection;
     
     std::thread progressThread;
     std::atomic<bool> running;
 
 public:
-    PlayerController(AudioPlayerModel* model);
+    PlayerController(MediaPlayer* model);
     ~PlayerController();
     
-    void setCollection(SongCollection* collection);
+    void setCollection(MediaManager* collection);
     
     void play(int index);
     void playNext();

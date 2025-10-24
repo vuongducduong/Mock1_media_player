@@ -15,17 +15,17 @@ void AddPlaylistView::calculateMaxVisibleLines() {
     if (maxVisibleLines < 5) maxVisibleLines = 5;
 }
 
-void AddPlaylistView::setAvailableSongsPC(const std::vector<std::string>& songs) {
-    availableSongsPC = songs;
+void AddPlaylistView::setAvailableMediaFilesPC(const std::vector<std::string>& songs) {
+    availableMediaFilesPC = songs;
 }
 
-void AddPlaylistView::setAvailableSongsUSB(const std::vector<std::string>& songs) {
-    availableSongsUSB = songs;
+void AddPlaylistView::setAvailableMediaFilesUSB(const std::vector<std::string>& songs) {
+    availableMediaFilesUSB = songs;
 }
 
 void AddPlaylistView::reset() {
     playlistName = "New Playlist";
-    selectedSongs.clear();
+    selectedMediaFiles.clear();
     scrollOffset = 0;
     showingPC = true;
     currentSection = AddPlaylistSection::NAME_INPUT;
@@ -33,16 +33,16 @@ void AddPlaylistView::reset() {
     editingPlaylistIndex = -1;             // THÊM DÒNG NÀY
 }
 
-std::vector<std::string> AddPlaylistView::getSelectedSongs() const {
+std::vector<std::string> AddPlaylistView::getSelectedMediaFiles() const {
     std::vector<std::string> result;
-    for (const auto& pair : selectedSongs) {
+    for (const auto& pair : selectedMediaFiles) {
         result.push_back(pair.first);
     }
     return result;
 }
 
-const std::vector<std::string>& AddPlaylistView::getCurrentSongList() const {
-    return showingPC ? availableSongsPC : availableSongsUSB;
+const std::vector<std::string>& AddPlaylistView::getCurrentMediaFileList() const {
+    return showingPC ? availableMediaFilesPC : availableMediaFilesUSB;
 }
 
 void AddPlaylistView::scrollUp() {
@@ -52,15 +52,15 @@ void AddPlaylistView::scrollUp() {
 }
 
 void AddPlaylistView::scrollDown() {
-    const auto& songs = getCurrentSongList();
+    const auto& songs = getCurrentMediaFileList();
     int maxScroll = std::max(0, (int)songs.size() - maxVisibleLines);
     if (scrollOffset < maxScroll) {
         scrollOffset++;
     }
 }
 
-bool AddPlaylistView::isSongSelected(const std::string& song) const {
-    return selectedSongs.count(song) > 0;
+bool AddPlaylistView::isMediaFileSelected(const std::string& song) const {
+    return selectedMediaFiles.count(song) > 0;
 }
 
 void AddPlaylistView::draw() {
@@ -115,7 +115,7 @@ void AddPlaylistView::draw() {
     currentY += 2;
     
     // ===== SONG LIST =====
-    const auto& songs = getCurrentSongList();
+    const auto& songs = getCurrentMediaFileList();
     std::string sourceLabel = showingPC ? "PC" : "USB";
     mvwprintw(window, currentY++, 2, "Available Songs from %s (Click to add/remove):", 
               sourceLabel.c_str());
@@ -124,7 +124,7 @@ void AddPlaylistView::draw() {
     int displayEnd = std::min((int)songs.size(), scrollOffset + maxVisibleLines);
     
     for (int i = scrollOffset; i < displayEnd; ++i) {
-        bool isSelected = isSongSelected(songs[i]);
+        bool isSelected = isMediaFileSelected(songs[i]);
         
         // Cắt tên nếu quá dài
         std::string displayName = songs[i];
@@ -156,7 +156,7 @@ void AddPlaylistView::draw() {
     currentY = height - 2;
     wattron(window, A_BOLD);
     mvwprintw(window, currentY, 2, "Selected: %d songs from PC + USB", 
-              (int)selectedSongs.size());
+              (int)selectedMediaFiles.size());
     wattroff(window, A_BOLD);
     
     // ===== BUTTONS =====
@@ -267,7 +267,7 @@ int AddPlaylistView::getSongAtY(int localY) const {
     if (localY < listStartY || localY > (height-3)) return -1;
     
     int index = scrollOffset + (localY - listStartY);
-    const auto& songs = getCurrentSongList();
+    const auto& songs = getCurrentMediaFileList();
     
     if (index >= 0 && index < (int)songs.size()) {
         return index;
@@ -275,22 +275,22 @@ int AddPlaylistView::getSongAtY(int localY) const {
     return -1;
 }
 void AddPlaylistView::toggleSong(int index) {
-    const auto& songs = getCurrentSongList();
+    const auto& songs = getCurrentMediaFileList();
     if (index < 0 || index >= (int)songs.size()) return;
     
     std::string songName = songs[index];
     
-    if (selectedSongs.count(songName)) {
-        selectedSongs.erase(songName);
+    if (selectedMediaFiles.count(songName)) {
+        selectedMediaFiles.erase(songName);
     } else {
-        selectedSongs[songName] = showingPC; // Track source
+        selectedMediaFiles[songName] = showingPC; // Track source
     }
 }
 
-std::vector<SelectedSongInfo> AddPlaylistView::getSelectedSongsWithSource() const {
-    std::vector<SelectedSongInfo> result;
-    for (const auto& pair : selectedSongs) {
-        SelectedSongInfo info;
+std::vector<SelectedMediaFileInfo> AddPlaylistView::getSelectedMediaFilesWithSource() const {
+    std::vector<SelectedMediaFileInfo> result;
+    for (const auto& pair : selectedMediaFiles) {
+        SelectedMediaFileInfo info;
         info.name = pair.first;
         info.isFromPC = pair.second;
         result.push_back(info);
@@ -298,29 +298,29 @@ std::vector<SelectedSongInfo> AddPlaylistView::getSelectedSongsWithSource() cons
     return result;
 }
 
-void AddPlaylistView::setSelectedSongs(const std::vector<std::string>& songs) {
-    selectedSongs.clear();
+void AddPlaylistView::setSelectedMediaFiles(const std::vector<std::string>& songs) {
+    selectedMediaFiles.clear();
 
     // Đánh dấu lại những bài hát có trong playlist cũ
     for (const auto& name : songs) {
         bool found = false;
 
         // Kiểm tra trong danh sách PC
-        if (std::find(availableSongsPC.begin(), availableSongsPC.end(), name) != availableSongsPC.end()) {
-            selectedSongs[name] = true;  // true = từ PC
+        if (std::find(availableMediaFilesPC.begin(), availableMediaFilesPC.end(), name) != availableMediaFilesPC.end()) {
+            selectedMediaFiles[name] = true;  // true = từ PC
             found = true;
         }
 
         // Kiểm tra trong danh sách USB
-        if (!found && std::find(availableSongsUSB.begin(), availableSongsUSB.end(), name) != availableSongsUSB.end()) {
-            selectedSongs[name] = false; // false = từ USB
+        if (!found && std::find(availableMediaFilesUSB.begin(), availableMediaFilesUSB.end(), name) != availableMediaFilesUSB.end()) {
+            selectedMediaFiles[name] = false; // false = từ USB
         }
     }
 }
 
-void AddPlaylistView::setSelectedSongsWithSource(const std::vector<SelectedSongInfo>& songs) {
-    selectedSongs.clear();
+void AddPlaylistView::setSelectedMediaFilesWithSource(const std::vector<SelectedMediaFileInfo>& songs) {
+    selectedMediaFiles.clear();
     for (const auto& info : songs) {
-        selectedSongs[info.name] = info.isFromPC;
+        selectedMediaFiles[info.name] = info.isFromPC;
     }
 }

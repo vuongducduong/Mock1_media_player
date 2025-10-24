@@ -5,7 +5,7 @@
 
 class BottomBarView : public BaseView {
 private:
-    std::string songName;
+    std::string mediaFileName;
     float progress;
     int currentTime;
     int totalTime;
@@ -18,7 +18,7 @@ public:
     BottomBarView(int w, int y);
     
     void draw() override;
-    void setSongName(const std::string& name) { songName = name; }
+    void setMediaFileName(const std::string& name) { mediaFileName = name; }
     void setProgress(float p) { progress = p; }
     void setTime(int current, int total) { currentTime = current; totalTime = total; }
     void setControls(const std::vector<std::string>& c) { controls = c; }

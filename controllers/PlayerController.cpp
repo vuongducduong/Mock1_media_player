@@ -1,6 +1,6 @@
 #include "PlayerController.h"
 
-PlayerController::PlayerController(AudioPlayerModel* model) 
+PlayerController::PlayerController(MediaPlayer* model) 
     : model(model), currentCollection(nullptr), running(true) {
     progressThread = std::thread(&PlayerController::updateProgressLoop, this);
 }
@@ -12,25 +12,25 @@ PlayerController::~PlayerController() {
     }
 }
 
-void PlayerController::setCollection(SongCollection* collection) {
+void PlayerController::setCollection(MediaManager* collection) {
     currentCollection = collection;
 }
 
 void PlayerController::play(int index) {
     if (!currentCollection) return;
     
-    auto song = currentCollection->getSong(index);
-    if (!song) return;
+    auto mediafile = currentCollection->getMediaFile(index);
+    if (!mediafile) return;
     
     currentCollection->setCurrentIndex(index);
     
-    if (song->isVideo()) {
-        playVideoExternal(song->getFullPath());
+    if (mediafile->isVideo()) {
+        playVideoExternal(mediafile->getFullPath());
         return;
     }
     
-    model->setDuration(song->getDuration());
-    model->play(song->getFullPath());
+    model->setDuration(mediafile->getDuration());
+    model->play(mediafile->getFullPath());
 }
 
 void PlayerController::playNext() {

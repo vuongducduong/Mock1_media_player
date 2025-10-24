@@ -1,7 +1,7 @@
 #include "Playlist.h"
 
-Playlist::Playlist(const std::string& name, const std::string& basePath) 
-    : name(name), path(basePath + "/" + name), songs(path) {}
+Playlist::Playlist(const std::string& playlistName, const std::string& basePath) 
+    : playlistName(playlistName), path(basePath + "/" + playlistName), mediaManager(path) {}
 
 void Playlist::create(const std::vector<std::string>& songFiles, 
                      const std::string& sourceFolder) {
@@ -28,7 +28,7 @@ void Playlist::create(const std::vector<std::string>& songFiles,
 }
 
 void Playlist::load() {
-    songs.load();
+    mediaManager.load();
 }
 
 void Playlist::remove() {

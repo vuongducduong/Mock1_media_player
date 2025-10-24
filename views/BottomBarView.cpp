@@ -9,8 +9,8 @@ void BottomBarView::draw() {
     box(window, 0, 0);
     
     // Hiển thị tên bài hát đang phát
-    if (!songName.empty()) {
-        mvwprintw(window, 0, 2, "Playing: %s", songName.c_str());
+    if (!mediaFileName.empty()) {
+        mvwprintw(window, 0, 2, "Playing: %s", mediaFileName.c_str());
     }
     
     // Vẽ thanh progress

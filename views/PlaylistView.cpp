@@ -16,7 +16,7 @@ void PlaylistView::draw() {
     mvwprintw(window, 1, 2 + addBtn.size() + removeBtn.size() + 8, "%s", editBtn.c_str());
     
     // Tiêu đề
-    mvwprintw(window, 2, 2, "Playlists (Click to view songs):");
+    mvwprintw(window, 2, 2, "Playlists (Click to view media):");
     
     // Danh sách playlist
     int y = 3;

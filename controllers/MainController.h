@@ -1,11 +1,11 @@
 #ifndef MAINCONTROLLER_H
 #define MAINCONTROLLER_H
 
-#include "../models/SongCollection.h"
-#include "../models/PlaylistCollection.h"
-#include "../models/AudioPlayerModel.h"
+#include "../models/MediaManager.h"
+#include "../models/PlaylistManager.h"
+#include "../models/MediaPlayer.h"
 #include "../views/TopBarView.h"
-#include "../views/SongListView.h"
+#include "../views/MediaFileListView.h"
 #include "../views/BottomBarView.h"
 #include "../views/PlaylistView.h"
 #include "../views/AddPlaylistView.h"
@@ -18,7 +18,7 @@ enum class ScreenType {
     THIS_PC,
     USB,
     PLAYLIST_LIST,
-    PLAYLIST_SONGS,
+    PLAYLIST_MEDIAFILES,
     ADD_PLAYLIST,
     METADATA,
     BOARD,
@@ -28,15 +28,15 @@ enum class ScreenType {
 class MainController {
 private:
     // Models
-    AudioPlayerModel audioModel;
-    SongCollection pcSongs;
-    SongCollection usbSongs;
-    SongCollection playlistSongs;
-    PlaylistCollection playlists;
+    MediaPlayer mediaPlayer;
+    MediaManager pcMediaFiles;
+    MediaManager usbMediaFiles;
+    MediaManager playlistMediaFiles;
+    PlaylistManager playlists;
     
     // Views
     std::unique_ptr<TopBarView> topBar;
-    std::unique_ptr<SongListView> songList;
+    std::unique_ptr<MediaFileListView> mediafileList;
     std::unique_ptr<BottomBarView> bottomBar;
     std::unique_ptr<PlaylistView> playlistView;
     std::unique_ptr<MetadataView> metadataView;
@@ -66,7 +66,7 @@ private:
     void updateViews();
     
     void onTopBarClick(int x);
-    void onSongListClick(int y, bool rightClick);
+    void onMediaFileListClick(int y, bool rightClick);
     void onPlaylistClick(int x, int y, int button);
     void onControlClick(int x);
     void onAddPlaylistClick(int x, int y);

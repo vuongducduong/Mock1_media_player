@@ -16,7 +16,7 @@ enum class AddPlaylistMode {
     CREATE,
     EDIT
 };
-struct SelectedSongInfo {
+struct SelectedMediaFileInfo {
     std::string name;
     bool isFromPC;  // true = PC, false = USB
 };
@@ -24,9 +24,9 @@ struct SelectedSongInfo {
 class AddPlaylistView : public BaseView {
 private:
     std::string playlistName;
-    std::vector<std::string> availableSongsPC;
-    std::vector<std::string> availableSongsUSB;
-    std::map<std::string, bool> selectedSongs;  // tránh trùng
+    std::vector<std::string> availableMediaFilesPC;
+    std::vector<std::string> availableMediaFilesUSB;
+    std::map<std::string, bool> selectedMediaFiles;  // tránh trùng
     
     int scrollOffset;
     int maxVisibleLines;
@@ -44,14 +44,14 @@ public:
     
     // Setters
     void setPlaylistName(const std::string& name) { playlistName = name; }
-    void setAvailableSongsPC(const std::vector<std::string>& songs);
-    void setAvailableSongsUSB(const std::vector<std::string>& songs);
+    void setAvailableMediaFilesPC(const std::vector<std::string>& songs);
+    void setAvailableMediaFilesUSB(const std::vector<std::string>& songs);
     void reset();
     
     // Getters
     const std::string& getPlaylistName() const { return playlistName; }
-    std::vector<std::string> getSelectedSongs() const;
-    int getSelectedCount() const { return selectedSongs.size(); }
+    std::vector<std::string> getSelectedMediaFiles() const;
+    int getSelectedCount() const { return selectedMediaFiles.size(); }
     
     // Navigation
     void scrollUp();
@@ -61,7 +61,7 @@ public:
     
     // Song selection
     void toggleSong(int index);
-    bool isSongSelected(const std::string& song) const;
+    bool isMediaFileSelected(const std::string& song) const;
     
     // Click detection
     bool isNameInputClicked(int x, int localY) const;
@@ -73,19 +73,19 @@ public:
     
     // Input handling
     void editPlaylistName();
-    std::vector<SelectedSongInfo> getSelectedSongsWithSource() const;
-    void setSelectedSongs(const std::vector<std::string>& songs);
+    std::vector<SelectedMediaFileInfo> getSelectedMediaFilesWithSource() const;
+    void setSelectedMediaFiles(const std::vector<std::string>& songs);
 
-        void setMode(AddPlaylistMode m) { mode = m; }
+    void setMode(AddPlaylistMode m) { mode = m; }
     AddPlaylistMode getMode() const { return mode; }
     void setEditingPlaylistIndex(int idx) { editingPlaylistIndex = idx; }
     int getEditingPlaylistIndex() const { return editingPlaylistIndex; }
-    void setSelectedSongsWithSource(const std::vector<SelectedSongInfo>& songs);
+    void setSelectedMediaFilesWithSource(const std::vector<SelectedMediaFileInfo>& songs);
  
     
 private:
     void calculateMaxVisibleLines();
-    const std::vector<std::string>& getCurrentSongList() const;
+    const std::vector<std::string>& getCurrentMediaFileList() const;
 };
 
 #endif
