@@ -78,3 +78,67 @@ std::vector<std::string> PlaylistCollection::getPlaylistNames() const {
     }
     return names;
 }
+void PlaylistCollection::updatePlaylist(int index, const std::string& name, 
+                                       const std::vector<SelectedSongInfo>& songs) {
+    if (index < 0 || index >= (int)playlists.size()) return;
+    
+    auto playlist = playlists[index];
+    std::string oldName = playlist->getName();
+    
+    // Sanitize tên
+    std::string safeName = name;
+    for (char& c : safeName) {
+        if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || 
+            c == '"' || c == '<' || c == '>' || c == '|') {
+            c = '_';
+        }
+    }
+    
+    std::string oldFolder = baseFolder + "/" + oldName;
+    std::string newFolder = baseFolder + "/" + safeName;
+    
+    // Rename folder nếu đổi tên
+    if (safeName != oldName) {
+        if (std::filesystem::exists(oldFolder)) {
+            try {
+                std::filesystem::rename(oldFolder, newFolder);
+            } catch (const std::exception& e) {
+                std::cerr << "Rename error: " << e.what() << std::endl;
+                return;
+            }
+        }
+    } else {
+        newFolder = oldFolder;
+    }
+    
+    // Xóa files cũ
+    if (std::filesystem::exists(newFolder)) {
+        for (const auto& entry : std::filesystem::directory_iterator(newFolder)) {
+            std::filesystem::remove(entry.path());
+        }
+    } else {
+        std::filesystem::create_directories(newFolder);
+    }
+    
+    // Copy files mới
+    for (const auto& songInfo : songs) {
+        std::string sourceFolder = songInfo.isFromPC ? "./music" : "/music/usb";
+        std::string sourcePath = sourceFolder + "/" + songInfo.name;
+        std::string destPath = newFolder + "/" + songInfo.name;
+        
+        if (std::filesystem::exists(sourcePath)) {
+            try {
+                std::filesystem::copy_file(sourcePath, destPath, 
+                    std::filesystem::copy_options::overwrite_existing);
+            } catch (const std::exception& e) {
+                std::cerr << "Copy error: " << e.what() << std::endl;
+            }
+        }
+    }
+    
+    // QUAN TRỌNG: Update tên và reload
+    playlist->setName(safeName);
+    playlist->load();  // Load lại songs từ folder mới
+    
+    std::cerr << "Playlist updated and reloaded" << std::endl;
+}

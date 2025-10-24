@@ -19,6 +19,7 @@ public:
                 const std::string& sourceFolder);
     void load();
     void remove();
+    void setName(const std::string& newName) { name = newName; } 
     
     SongCollection& getSongs() { return songs; }
     const SongCollection& getSongs() const { return songs; }

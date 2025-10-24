@@ -12,7 +12,10 @@ enum class AddPlaylistSection {
     SONG_LIST,       // Đang xem danh sách bài hát
     BUTTONS          // Đang ở nút Save/Cancel
 };
-
+enum class AddPlaylistMode {
+    CREATE,
+    EDIT
+};
 struct SelectedSongInfo {
     std::string name;
     bool isFromPC;  // true = PC, false = USB
@@ -23,13 +26,16 @@ private:
     std::string playlistName;
     std::vector<std::string> availableSongsPC;
     std::vector<std::string> availableSongsUSB;
-    std::map<std::string, bool> selectedSongs;  // Set để tránh trùng
+    std::map<std::string, bool> selectedSongs;  // tránh trùng
     
     int scrollOffset;
     int maxVisibleLines;
     
     bool showingPC;  // true = PC, false = USB
     AddPlaylistSection currentSection;
+
+    AddPlaylistMode mode;
+    int editingPlaylistIndex;
 
 public:
     AddPlaylistView(int h, int w, int y, int x);
@@ -68,6 +74,14 @@ public:
     // Input handling
     void editPlaylistName();
     std::vector<SelectedSongInfo> getSelectedSongsWithSource() const;
+    void setSelectedSongs(const std::vector<std::string>& songs);
+
+        void setMode(AddPlaylistMode m) { mode = m; }
+    AddPlaylistMode getMode() const { return mode; }
+    void setEditingPlaylistIndex(int idx) { editingPlaylistIndex = idx; }
+    int getEditingPlaylistIndex() const { return editingPlaylistIndex; }
+    void setSelectedSongsWithSource(const std::vector<SelectedSongInfo>& songs);
+ 
     
 private:
     void calculateMaxVisibleLines();

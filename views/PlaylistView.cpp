@@ -7,11 +7,13 @@ void PlaylistView::draw() {
     werase(window);
     box(window, 0, 0);
     
-    // Vẽ nút Add và Remove
+    // Vẽ nút Add và Remove, edit
     std::string addBtn = "[ + Add ]";
     std::string removeBtn = "[ - Remove ]";
+    std::string editBtn = "[ * Edit ]";
     mvwprintw(window, 1, 2, "%s", addBtn.c_str());
     mvwprintw(window, 1, 2 + addBtn.size() + 4, "%s", removeBtn.c_str());
+    mvwprintw(window, 1, 2 + addBtn.size() + removeBtn.size() + 8, "%s", editBtn.c_str());
     
     // Tiêu đề
     mvwprintw(window, 2, 2, "Playlists (Click to view songs):");
@@ -50,4 +52,12 @@ bool PlaylistView::isRemoveButtonClicked(int x, int localY) const {
     std::string removeBtn = "[ - Remove ]";
     int removeX = 2 + addBtn.size() + 4;
     return (localY == 1 && x >= removeX && x <= removeX + (int)removeBtn.size());
+}
+
+bool PlaylistView::isEditButtonClicked(int x, int localY) const {
+    std::string addBtn = "[ + Add ]";
+    std::string removeBtn = "[ - Remove ]";
+    std::string editBtn = "[ * Edit ]";
+    int editX = 2 + addBtn.size() + removeBtn.size() + 8;
+    return (localY == 1 && x >= editX && x <= editX + (int)editBtn.size());
 }

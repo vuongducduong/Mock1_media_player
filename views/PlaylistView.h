@@ -16,8 +16,9 @@ public:
     void setSelectedIndex(int i) { selectedIndex = i; }
     
     int getPlaylistAtY(int y) const;
-    bool isAddButtonClicked(int x, int y) const;
-    bool isRemoveButtonClicked(int x, int y) const;
+    bool isAddButtonClicked(int x, int localY) const;
+    bool isRemoveButtonClicked(int x, int localY) const;
+    bool isEditButtonClicked(int x, int localY) const;
 };
 
 #endif

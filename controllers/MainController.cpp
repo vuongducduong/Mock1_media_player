@@ -347,15 +347,66 @@ void MainController::onPlaylistClick(int x,int y, int button) {
         switchScreen(currentScreen);
         return;
     }
-    
+if (playlistView->isEditButtonClicked(x, y)) {
+    int index = playlists.getSelectedIndex();
+    if (index >= 0) {
+        auto playlist = playlists.getPlaylist(index);
+        if (playlist) {
+            // Load playlist trước
+            playlist->load();
+            
+            currentScreen = ScreenType::ADD_PLAYLIST;
+            addPlaylistView->setMode(AddPlaylistMode::EDIT);
+            addPlaylistView->setEditingPlaylistIndex(index);
+            addPlaylistView->setPlaylistName(playlist->getName());
+            
+            // Load danh sách available songs
+            addPlaylistView->setAvailableSongsPC(pcSongs.getSongNames());
+            addPlaylistView->setAvailableSongsUSB(usbSongs.getSongNames());
+            
+            // ===== THAY ĐỔI PHẦN NÀY =====
+            std::vector<SelectedSongInfo> selectedSongs;
+            auto& playlistSongs = playlist->getSongs();
+            
+            // Lấy danh sách tên file từ PC và USB để so sánh
+            auto pcList = pcSongs.getSongNames();
+            auto usbList = usbSongs.getSongNames();
+            
+            for (const auto& song : playlistSongs.getAllSongs()) {
+                SelectedSongInfo info;
+                info.name = song->getFilename();
+                
+                // Tìm trong danh sách PC trước
+                bool foundInPC = false;
+                for (const auto& pcSong : pcList) {
+                    if (pcSong == info.name) {
+                        info.isFromPC = true;
+                        foundInPC = true;
+                        break;
+                    }
+                }
+                
+                // Nếu không có trong PC, tìm trong USB
+                if (!foundInPC) {
+                    for (const auto& usbSong : usbList) {
+                        if (usbSong == info.name) {
+                            info.isFromPC = false;
+                            break;
+                        }
+                    }
+                }
+                
+                selectedSongs.push_back(info);
+            }
+            
+            addPlaylistView->setSelectedSongsWithSource(selectedSongs);
+            switchScreen(currentScreen);
+        }
+    }
+    return;
+}
     int playlistIndex = playlistView->getPlaylistAtY(y);
     if (playlistIndex >= 0) {
-        // playlists.setSelectedIndex(playlistIndex);
-        // auto playlist = playlists.getPlaylist(playlistIndex);
-        // if (playlist) {
-        //     playlist->load();
-        //     playlistSongs = playlist->getSongs();
-        //     switchScreen(ScreenType::PLAYLIST_SONGS);
         if (button == 1) {
             playlists.setSelectedIndex(playlistIndex);
             playlistView->setSelectedIndex(playlistIndex);
@@ -369,6 +420,7 @@ void MainController::onPlaylistClick(int x,int y, int button) {
             if (playlist) {
                 playlist->load();
                 playlistSongs = playlist->getSongs();
+                playerCtrl->setCollection(&playlistSongs);
                 switchScreen(ScreenType::PLAYLIST_SONGS);
             }
         }
@@ -408,12 +460,23 @@ void MainController::onAddPlaylistClick(int x, int y) {
         if (addPlaylistView->getSelectedCount() > 0 && 
             !addPlaylistView->getPlaylistName().empty()) {
             
-            // Lưu playlist với thông tin source
-            playlists.createPlaylist(
-                addPlaylistView->getPlaylistName(),
-                addPlaylistView->getSelectedSongsWithSource()
-            );
-            
+            // THAY ĐỔI: Kiểm tra mode
+            if (addPlaylistView->getMode() == AddPlaylistMode::CREATE) {
+                // Tạo playlist mới
+                playlists.createPlaylist(
+                    addPlaylistView->getPlaylistName(),
+                    addPlaylistView->getSelectedSongsWithSource()
+                );
+            } else {
+                // Update playlist hiện có
+                playlists.updatePlaylist(
+                    addPlaylistView->getEditingPlaylistIndex(),
+                    addPlaylistView->getPlaylistName(),
+                    addPlaylistView->getSelectedSongsWithSource()
+                );
+            }
+            clear();
+            refresh();
             // Quay lại màn hình playlist
             switchScreen(ScreenType::PLAYLIST_LIST);
             playlists.load();
@@ -460,14 +523,14 @@ void MainController::switchScreen(ScreenType screen) {
         case ScreenType::USB:
             usbSongs.load();
             playerCtrl->setCollection(&usbSongs);
-            songList->setSongs(pcSongs.getSongNames(), true);
+            songList->setSongs(usbSongs.getSongNames(), true);
             break;
         case ScreenType::PLAYLIST_LIST:
             playlists.load();
             break;
         case ScreenType::PLAYLIST_SONGS:
             playerCtrl->setCollection(&playlistSongs);
-            songList->setSongs(pcSongs.getSongNames(), true);
+            songList->setSongs(playlistSongs.getSongNames(), true);
             break;
         case ScreenType::ADD_PLAYLIST:
             addPlaylistView->draw();

@@ -28,6 +28,8 @@ public:
     int getSelectedIndex() const { return selectedIndex; }
     
     std::vector<std::string> getPlaylistNames() const;
+    void updatePlaylist(int index, const std::string& name, 
+                    const std::vector<SelectedSongInfo>& songs);
 };
 
 #endif

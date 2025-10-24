@@ -4,7 +4,8 @@
 
 AddPlaylistView::AddPlaylistView(int h, int w, int y, int x) 
     : BaseView(h, w, y, x), playlistName("New Playlist"), 
-      scrollOffset(0), showingPC(true), currentSection(AddPlaylistSection::NAME_INPUT) {
+      scrollOffset(0), showingPC(true), currentSection(AddPlaylistSection::NAME_INPUT),
+      mode(AddPlaylistMode::CREATE), editingPlaylistIndex(-1) {
     calculateMaxVisibleLines();
 }
 
@@ -28,6 +29,8 @@ void AddPlaylistView::reset() {
     scrollOffset = 0;
     showingPC = true;
     currentSection = AddPlaylistSection::NAME_INPUT;
+    mode = AddPlaylistMode::CREATE;        // THÊM DÒNG NÀY
+    editingPlaylistIndex = -1;             // THÊM DÒNG NÀY
 }
 
 std::vector<std::string> AddPlaylistView::getSelectedSongs() const {
@@ -68,7 +71,12 @@ void AddPlaylistView::draw() {
     
     // ===== TITLE =====
     wattron(window, A_BOLD);
-    mvwprintw(window, currentY++, (width - 20) / 2, "=== ADD PLAYLIST ===");
+    if (mode == AddPlaylistMode::CREATE) {
+        mvwprintw(window, currentY++, (width - 20) / 2, "=== CREATE PLAYLIST ===");
+    } 
+    else {
+        mvwprintw(window, currentY++, (width - 20) / 2, "=== EDIT PLAYLIST ===");
+    }
     wattroff(window, A_BOLD);
     
     // ===== NAME INPUT =====
@@ -131,7 +139,7 @@ void AddPlaylistView::draw() {
             wattroff(window, A_BOLD);
         } else {
             wattron(window, A_DIM);
-            mvwprintw(window, currentY++, 4, "[X] %s", displayName.c_str());
+            mvwprintw(window, currentY++, 4, "[ ] %s", displayName.c_str());
             wattroff(window, A_DIM);
         }
     }
@@ -288,4 +296,31 @@ std::vector<SelectedSongInfo> AddPlaylistView::getSelectedSongsWithSource() cons
         result.push_back(info);
     }
     return result;
+}
+
+void AddPlaylistView::setSelectedSongs(const std::vector<std::string>& songs) {
+    selectedSongs.clear();
+
+    // Đánh dấu lại những bài hát có trong playlist cũ
+    for (const auto& name : songs) {
+        bool found = false;
+
+        // Kiểm tra trong danh sách PC
+        if (std::find(availableSongsPC.begin(), availableSongsPC.end(), name) != availableSongsPC.end()) {
+            selectedSongs[name] = true;  // true = từ PC
+            found = true;
+        }
+
+        // Kiểm tra trong danh sách USB
+        if (!found && std::find(availableSongsUSB.begin(), availableSongsUSB.end(), name) != availableSongsUSB.end()) {
+            selectedSongs[name] = false; // false = từ USB
+        }
+    }
+}
+
+void AddPlaylistView::setSelectedSongsWithSource(const std::vector<SelectedSongInfo>& songs) {
+    selectedSongs.clear();
+    for (const auto& info : songs) {
+        selectedSongs[info.name] = info.isFromPC;
+    }
 }

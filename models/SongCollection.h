@@ -14,7 +14,17 @@ private:
 
 public:
     SongCollection(const std::string& folder = "");
+    SongCollection(const SongCollection& other) 
+        : folder(other.folder), songs(other.songs), currentIndex(other.currentIndex) {}
     
+    SongCollection& operator=(const SongCollection& other) {
+        if (this != &other) {
+            folder = other.folder;
+            songs = other.songs;
+            currentIndex = other.currentIndex;
+        }
+        return *this;
+    }
     void load();
     void clear();
     
@@ -32,6 +42,7 @@ public:
     bool hasPrevious() const { return currentIndex > 0; }
     
     std::vector<std::string> getSongNames() const;
+    const std::vector<std::shared_ptr<Song>>& getAllSongs() const { return songs; }
 };
 
 #endif
