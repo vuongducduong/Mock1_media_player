@@ -125,6 +125,12 @@ void MainController::handleInput() {
 }
 
 void MainController::handleKeyboard(int ch) {
+    if (currentScreen == ScreenType::METADATA) {
+        if (metadataView->handleKey(ch)) {
+            updateViews();
+            return;
+        }
+    }
     switch (ch) {
         case KEY_RESIZE:
             handleResize();
@@ -229,6 +235,13 @@ void MainController::handleKeyboard(int ch) {
 
 //Hàm xử lý chuột chung
 void MainController::handleMouse(int x, int y, int button) {
+    if (currentScreen == ScreenType::METADATA) {
+        int localY = y - 3;
+        if (metadataView->handleClick(x, localY)) {
+            updateViews();
+            return;
+        }
+    }
     // Click vào top bar
     if (y < 3) {
         onTopBarClick(x);
@@ -350,6 +363,7 @@ void MainController::onMediaFileListClick(int y, bool rightClick) {
             if (mediafile) {
                 metadataView->setFilename(mediafile->getFilename());
                 metadataView->setMetadata(mediafile->getMediaMetadata());
+                metadataView->setSourceMediaFile(mediafile.get()); // THÊM
                 currentScreen = ScreenType::METADATA;
             }
         }

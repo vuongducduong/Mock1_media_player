@@ -81,6 +81,7 @@ public:
     MediaMetadata* getMediaMetadata();
     int getDuration();
     bool isVideo() const;
+    bool saveMetadata();
     
 private:
     void loadMetadata();

@@ -72,3 +72,52 @@ bool MediaFile::isVideo() const {
     
     return videoExtensions.find(ext) != videoExtensions.end();
 }
+bool MediaFile::saveMetadata() {
+    if (!metadataLoaded || !metadata) {
+        return false;
+    }
+    
+    // Chỉ lưu metadata cho audio files (sử dụng TagLib)
+    if (!isVideo()) {
+        TagLib::FileRef f(fullPath.c_str());
+        
+        if (f.isNull() || !f.tag()) {
+            return false;
+        }
+        
+        auto* audioMeta = dynamic_cast<AudioMetadata*>(metadata.get());
+        if (!audioMeta) {
+            return false;
+        }
+        
+        TagLib::Tag* tag = f.tag();
+        
+        // Lưu các trường metadata
+        std::string title = audioMeta->getTitle();
+        std::string artist = audioMeta->getArtist();
+        std::string album = audioMeta->getAlbum();
+        std::string genre = audioMeta->getGenre();
+        unsigned int year = audioMeta->getYear();
+        
+        tag->setTitle(TagLib::String(title, TagLib::String::UTF8));
+        tag->setArtist(TagLib::String(artist, TagLib::String::UTF8));
+        tag->setAlbum(TagLib::String(album, TagLib::String::UTF8));
+        tag->setGenre(TagLib::String(genre, TagLib::String::UTF8));
+        tag->setYear(year);
+        
+        // Lưu file và kiểm tra kết quả
+        bool success = f.save();
+        
+        if (success) {
+            // Reload metadata để đảm bảo đồng bộ
+            metadataLoaded = false;
+            loadMetadata();
+        }
+        
+        return success;
+    }
+    
+    // Video metadata không được lưu (cần thư viện khác như FFmpeg)
+    // Có thể implement sau nếu cần
+    return false;
+}
