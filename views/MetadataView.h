@@ -6,14 +6,14 @@
 
 class MetadataView : public BaseView {
 private:
-    MediaMetadata metadata;
+    std::unique_ptr<MediaMetadata> metadata;
     std::string filename;
 
 public:
     MetadataView(int h, int w, int y, int x);
     
     void draw() override;
-    void setMetadata(const MediaMetadata& meta) { metadata = meta; }
+    void setMetadata(MediaMetadata* meta);
     void setFilename(const std::string& name) { filename = name; }
 };
 

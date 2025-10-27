@@ -71,6 +71,8 @@ private:
     void onControlClick(int x);
     void onAddPlaylistClick(int x, int y);
 
+    void handleResize(); 
+
 };
 
 #endif

@@ -126,6 +126,9 @@ void MainController::handleInput() {
 
 void MainController::handleKeyboard(int ch) {
     switch (ch) {
+        case KEY_RESIZE:
+            handleResize();
+            break;
         case KEY_LEFT:
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
@@ -286,6 +289,35 @@ void MainController::handleMouse(int x, int y, int button) {
             break;
     }
 }
+void MainController::handleResize() {
+    // Lấy kích thước mới
+    getmaxyx(stdscr, termHeight, termWidth);
+    
+    // Clear và refresh màn hình
+    clear();
+    refresh();
+    
+    // Cập nhật lại kích thước cho tất cả views
+    topBar = std::make_unique<TopBarView>(termWidth);
+    topBar->setButtons({"Main console", "This PC", "From USB", "Playlist", "Board", "Exit"});
+    
+    mediafileList = std::make_unique<MediaFileListView>(
+        termHeight - 7, termWidth, 3, 0);
+    
+    bottomBar = std::make_unique<BottomBarView>(termWidth, termHeight - 4);
+    
+    playlistView = std::make_unique<PlaylistView>(
+        termHeight - 7, termWidth, 3, 0);
+    
+    metadataView = std::make_unique<MetadataView>(
+        termHeight - 7, termWidth, 3, 0);
+    
+    addPlaylistView = std::make_unique<AddPlaylistView>(
+        termHeight - 7, termWidth, 3, 0);
+    
+    // Vẽ lại màn hình hiện tại
+    updateViews();
+}
 // hàm xử lý chuột trên thanh topbar
 void MainController::onTopBarClick(int x) {
     int btnIndex = topBar->getButtonAtX(x);
@@ -348,63 +380,63 @@ void MainController::onPlaylistClick(int x,int y, int button) {
         switchScreen(currentScreen);
         return;
     }
-if (playlistView->isEditButtonClicked(x, y)) {
-    int index = playlists.getSelectedIndex();
-    if (index >= 0) {
-        auto playlist = playlists.getPlaylist(index);
-        if (playlist) {
-            // Load playlist trước
-            playlist->load();
-            
-            currentScreen = ScreenType::ADD_PLAYLIST;
-            addPlaylistView->setMode(AddPlaylistMode::EDIT);
-            addPlaylistView->setEditingPlaylistIndex(index);
-            addPlaylistView->setPlaylistName(playlist->getPlayListName());
-            
-            // Load danh sách available songs
-            addPlaylistView->setAvailableMediaFilesPC(pcMediaFiles.getMediaFileNames());
-            addPlaylistView->setAvailableMediaFilesUSB(usbMediaFiles.getMediaFileNames());
+    if (playlistView->isEditButtonClicked(x, y)) {
+        int index = playlists.getSelectedIndex();
+        if (index >= 0) {
+            auto playlist = playlists.getPlaylist(index);
+            if (playlist) {
+                // Load playlist trước
+                playlist->load();
+                
+                currentScreen = ScreenType::ADD_PLAYLIST;
+                addPlaylistView->setMode(AddPlaylistMode::EDIT);
+                addPlaylistView->setEditingPlaylistIndex(index);
+                addPlaylistView->setPlaylistName(playlist->getPlayListName());
+                
+                // Load danh sách available songs
+                addPlaylistView->setAvailableMediaFilesPC(pcMediaFiles.getMediaFileNames());
+                addPlaylistView->setAvailableMediaFilesUSB(usbMediaFiles.getMediaFileNames());
 
-            std::vector<SelectedMediaFileInfo> setAvailableMediaFiles;
-            auto& playlistMediaFiles = playlist->getMediaFiles();   
-            
-            // Lấy danh sách tên file từ PC và USB để so sánh
-            auto pcList = pcMediaFiles.getMediaFileNames();
-            auto usbList = usbMediaFiles.getMediaFileNames();
-            
-            for (const auto& mediafile: playlistMediaFiles.getAllMediaFiles()) {
-                SelectedMediaFileInfo info;
-                info.name = mediafile->getFilename();
+                std::vector<SelectedMediaFileInfo> setAvailableMediaFiles;
+                auto& playlistMediaFiles = playlist->getMediaFiles();   
                 
-                // Tìm trong danh sách PC trước
-                bool foundInPC = false;
-                for (const auto& pcMediaFile: pcList) {
-                    if (pcMediaFile== info.name) {
-                        info.isFromPC = true;
-                        foundInPC = true;
-                        break;
-                    }
-                }
+                // Lấy danh sách tên file từ PC và USB để so sánh
+                auto pcList = pcMediaFiles.getMediaFileNames();
+                auto usbList = usbMediaFiles.getMediaFileNames();
                 
-                // Nếu không có trong PC, tìm trong USB
-                if (!foundInPC) {
-                    for (const auto& usbMediaFile: usbList) {
-                        if (usbMediaFile== info.name) {
-                            info.isFromPC = false;
+                for (const auto& mediafile: playlistMediaFiles.getAllMediaFiles()) {
+                    SelectedMediaFileInfo info;
+                    info.name = mediafile->getFilename();
+                    
+                    // Tìm trong danh sách PC trước
+                    bool foundInPC = false;
+                    for (const auto& pcMediaFile: pcList) {
+                        if (pcMediaFile== info.name) {
+                            info.isFromPC = true;
+                            foundInPC = true;
                             break;
                         }
                     }
+                    
+                    // Nếu không có trong PC, tìm trong USB
+                    if (!foundInPC) {
+                        for (const auto& usbMediaFile: usbList) {
+                            if (usbMediaFile== info.name) {
+                                info.isFromPC = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    setAvailableMediaFiles.push_back(info);
                 }
                 
-                setAvailableMediaFiles.push_back(info);
+                addPlaylistView->setSelectedMediaFilesWithSource(setAvailableMediaFiles);
+                switchScreen(currentScreen);
             }
-            
-            addPlaylistView->setSelectedMediaFilesWithSource(setAvailableMediaFiles);
-            switchScreen(currentScreen);
         }
+        return;
     }
-    return;
-}
     int playlistIndex = playlistView->getPlaylistAtY(y);
     if (playlistIndex >= 0) {
         if (button == 1) {
@@ -542,7 +574,7 @@ void MainController::switchScreen(ScreenType screen) {
 void MainController::updateViews() {
     // clear();
     // refresh();
-    
+    getmaxyx(stdscr, termHeight, termWidth);
     topBar->draw();
     
     switch (currentScreen) {
