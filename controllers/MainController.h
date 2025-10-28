@@ -4,14 +4,15 @@
 #include "../models/MediaManager.h"
 #include "../models/PlaylistManager.h"
 #include "../models/MediaPlayer.h"
-#include "../views/TopBarView.h"
-#include "../views/MediaFileListView.h"
-#include "../views/BottomBarView.h"
-#include "../views/PlaylistView.h"
-#include "../views/AddPlaylistView.h"
-#include "../views/MetadataView.h"
 #include "PlayerController.h"
+#include "MetadataController.h"
+#include "TopBarController.h"
+#include "MediaFileListController.h"
+#include "PlaylistController.h"
+#include "AddPlaylistController.h"
+#include "BottomBarController.h"
 #include <memory>
+
 
 enum class ScreenType {
     MAIN_CONSOLE,
@@ -34,16 +35,14 @@ private:
     MediaManager playlistMediaFiles;
     PlaylistManager playlists;
     
-    // Views
-    std::unique_ptr<TopBarView> topBar;
-    std::unique_ptr<MediaFileListView> mediafileList;
-    std::unique_ptr<BottomBarView> bottomBar;
-    std::unique_ptr<PlaylistView> playlistView;
-    std::unique_ptr<MetadataView> metadataView;
-    std::unique_ptr<AddPlaylistView> addPlaylistView;
-    
     // Controllers
+    std::unique_ptr<TopBarController> topBarCtrl;
+    std::unique_ptr<MediaFileListController> mediaFileListCtrl;
+    std::unique_ptr<BottomBarController> bottomBarCtrl;
+    std::unique_ptr<PlaylistController> playlistCtrl;
+    std::unique_ptr<AddPlaylistController> addPlaylistCtrl;
     std::unique_ptr<PlayerController> playerCtrl;
+    std::unique_ptr<MetadataController> metadataCtrl;
     
     // State
     ScreenType currentScreen;
@@ -64,15 +63,16 @@ private:
     
     void switchScreen(ScreenType screen);
     void updateViews();
+    void handleResize();
     
-    void onTopBarClick(int x);
-    void onMediaFileListClick(int y, bool rightClick);
-    void onPlaylistClick(int x, int y, int button);
-    void onControlClick(int x);
-    void onAddPlaylistClick(int x, int y);
-
-    void handleResize(); 
-
+    // Callback handlers
+    void onTopBarButtonClick(int btnIndex);
+    void onMediaFileClick(int index);
+    void onMediaFileRightClick(int index);
+    void onPlaylistSelect(int index);
+    void onPlaylistDoubleClick(int index);
+    void onAddPlaylistSave();
+    void onAddPlaylistCancel();
 };
 
 #endif

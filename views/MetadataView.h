@@ -2,7 +2,7 @@
 #define METADATAVIEW_H
 
 #include "BaseView.h"
-#include "../models/MediaFile.h"
+// #include "../models/MediaFile.h"
 
 enum class EditField {
     NONE = -1,
@@ -14,11 +14,22 @@ enum class EditField {
     CODEC,
     // Thêm các field khác nếu cần
 };
-
+struct MetadataDisplayData {
+    std::string title;
+    std::string artist;
+    std::string album;
+    std::string genre;
+    std::string year;
+    std::string codec;
+    int duration = 0;
+    int bitrate = 0;
+    int sampleRate = 0;
+    long size = 0;
+    bool isAudio = false;
+    bool isVideo = false;
+};
 class MetadataView : public BaseView {
 private:
-    MediaFile* sourceMediaFile; 
-    std::unique_ptr<MediaMetadata> metadata;
     std::string filename;
     EditField currentEditField;
     std::vector<std::pair<EditField, int>> fieldPositions; // Lưu vị trí y của mỗi field
@@ -26,27 +37,29 @@ private:
     std::string editBuffer;
 
     void drawField(int line, const char* label, const std::string& value, bool isEditable, bool isSelected);
-    void startEditing(EditField field);
-    void finishEditing(bool save);
-    std::string getFieldValue(EditField field);
-    void setFieldValue(EditField field, const std::string& value);
 
 public:
     MetadataView(int h, int w, int y, int x);
-    
-    void draw() override;
-    void setMetadata(MediaMetadata* meta);
     void setFilename(const std::string& name) { filename = name; }
+    void setCurrentEditField(EditField field) { 
+        currentEditField = field; 
+    }
+    void setFieldPositions (const std::vector<std::pair<EditField, int>>& positions) {
+        fieldPositions = positions;
+    }
+    void setIsEditing(bool editing) { isEditing = editing; }
+    void setEditBuffer(const std::string& buffer) { editBuffer = buffer; }
 
-    bool handleClick(int x, int y);
-    bool handleKey(int ch);
-    
-    EditField getFieldAtY(int y);
-    
-    MediaMetadata* getModifiedMetadata() { return metadata.get(); }
-    bool hasUnsavedChanges() const { return isEditing; }
-        void setSourceMediaFile(MediaFile* file) { sourceMediaFile = file; }  // THÊM
-    bool saveToFile();  // THÊM
+    //getter 
+    std::string getFilename() const { return filename; }
+    EditField getCurrentEditField() const { return currentEditField; }
+    std::vector<std::pair<EditField, int>> getFieldPositions() const { return fieldPositions; }
+    bool getIsEditing() const { return isEditing; }
+    std::string getEditBuffer() const { return editBuffer; }
+
+    void draw() override;
+    void draw(const MetadataDisplayData& data);
+
 };
 
 #endif
