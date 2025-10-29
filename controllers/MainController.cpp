@@ -4,6 +4,8 @@ MainController::MainController()
     : currentScreen(ScreenType::MAIN_CONSOLE),
       pcMediaFiles("./music"),
       usbMediaFiles("./usb") {
+        int termWidth = getmaxx(stdscr);
+    usbStatusBar = std::make_unique<UsbStatusBar>(termWidth);
 }
 
 MainController::~MainController() {
@@ -35,18 +37,18 @@ bool MainController::init() {
     topBar->setButtons({"Main console", "This PC", "From USB", "Playlist", "Board", "Exit"});
     
     mediafileList = std::make_unique<MediaFileListView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     bottomBar = std::make_unique<BottomBarView>(termWidth, termHeight - 4);
     
     playlistView = std::make_unique<PlaylistView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     metadataView = std::make_unique<MetadataView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
 
     addPlaylistView = std::make_unique<AddPlaylistView>(
-    termHeight - 7, termWidth, 3, 0);
+    termHeight - 8, termWidth, 4, 0);
     // Tạo player controller
     playerCtrl = std::make_unique<PlayerController>(&mediaPlayer);
     
@@ -224,13 +226,22 @@ void MainController::handleKeyboard(int ch) {
             playerCtrl->decreaseVolume();
             bottomBar->setVolume(mediaPlayer.getVolume());
             break;
+
+        case 'e':  // nhấn phím e để chọn Eject
+            if (usbStatusBar)
+                usbStatusBar->toggleEjectSelected();
+
+            if (usbManager.isUsbConnected()) {
+                usbManager.ejectAll();
+            }
+            break;
     }
 }
 
 //Hàm xử lý chuột chung
 void MainController::handleMouse(int x, int y, int button) {
     // Click vào top bar
-    if (y < 3) {
+    if (y>0 && y < 3) {
         onTopBarClick(x);
         return;
     }
@@ -245,7 +256,7 @@ void MainController::handleMouse(int x, int y, int button) {
     }
     
     // Click vào main area
-    int localY = y - 3;
+    int localY = y-4;
     int localX = x;
     
     switch (currentScreen) {
@@ -302,18 +313,18 @@ void MainController::handleResize() {
     topBar->setButtons({"Main console", "This PC", "From USB", "Playlist", "Board", "Exit"});
     
     mediafileList = std::make_unique<MediaFileListView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     bottomBar = std::make_unique<BottomBarView>(termWidth, termHeight - 4);
     
     playlistView = std::make_unique<PlaylistView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     metadataView = std::make_unique<MetadataView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     addPlaylistView = std::make_unique<AddPlaylistView>(
-        termHeight - 7, termWidth, 3, 0);
+        termHeight - 8, termWidth, 4, 0);
     
     // Vẽ lại màn hình hiện tại
     updateViews();
@@ -460,7 +471,7 @@ void MainController::onPlaylistClick(int x,int y, int button) {
 }
 // Thêm hàm mới xử lý click trong màn hình Add Playlist:
 void MainController::onAddPlaylistClick(int x, int y) {
-    int localY = y - 3;
+    int localY = y-4;
     
     // Click vào ô nhập tên
     if (addPlaylistView->isNameInputClicked(x, localY)) {
@@ -572,9 +583,24 @@ void MainController::switchScreen(ScreenType screen) {
 }
 
 void MainController::updateViews() {
-    // clear();
-    // refresh();
+    // Cập nhật kích thước terminal
     getmaxyx(stdscr, termHeight, termWidth);
+    // termHeight++;
+
+    // --- Cập nhật trạng thái USB ---
+    usbManager.updateStatus();
+
+    // Nếu terminal thay đổi kích thước → tạo lại thanh USB
+    if (!usbStatusBar || usbStatusBar->getWidth() != termWidth) {
+        usbStatusBar = std::make_unique<UsbStatusBar>(termWidth);
+    }
+
+    // Cập nhật dữ liệu hiển thị cho thanh USB
+    usbStatusBar->render(usbManager);
+
+    // Vẽ thanh USB
+    usbStatusBar->draw();
+
     topBar->draw();
     
     switch (currentScreen) {

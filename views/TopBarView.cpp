@@ -1,7 +1,7 @@
 #include "TopBarView.h"
 
 TopBarView::TopBarView(int w) 
-    : BaseView(3, w, 0, 0), pointedButton(0), selectedButton(0) {}
+    : BaseView(3, w, 1, 0), pointedButton(0), selectedButton(0) {}
 
 void TopBarView::draw() {
     werase(window);

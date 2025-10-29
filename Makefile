@@ -1,3 +1,4 @@
+# usbipd attach --wsl --hardware-id 0781:5591 --auto-attach
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -pthread
 LDFLAGS = -lncursesw -ltinfo -lSDL2 -lSDL2_mixer -ltag

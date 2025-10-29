@@ -11,6 +11,8 @@
 #include "../views/AddPlaylistView.h"
 #include "../views/MetadataView.h"
 #include "PlayerController.h"
+#include "../models/UsbManager.h"
+#include "../views/UsbStatusBar.h"
 #include <memory>
 
 enum class ScreenType {
@@ -33,8 +35,10 @@ private:
     MediaManager usbMediaFiles;
     MediaManager playlistMediaFiles;
     PlaylistManager playlists;
-    
+    UsbManager usbManager;
+
     // Views
+    std::unique_ptr<UsbStatusBar> usbStatusBar;
     std::unique_ptr<TopBarView> topBar;
     std::unique_ptr<MediaFileListView> mediafileList;
     std::unique_ptr<BottomBarView> bottomBar;
@@ -53,7 +57,6 @@ private:
 public:
     MainController();
     ~MainController();
-    
     bool init();
     void run();
     
