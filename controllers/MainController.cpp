@@ -10,6 +10,7 @@ MainController::MainController()
       usbStatusBar = std::make_unique<UsbStatusBar>(termWidth);
     }
 
+    
 MainController::~MainController() {
     endwin();
 }
