@@ -5,7 +5,6 @@
 #include "../models/PlaylistManager.h"
 #include "../models/MediaPlayer.h"
 #include "../models/UsbManager.h"
-#include "../views/UsbStatusBar.h"
 #include "PlayerController.h"
 #include "MetadataController.h"
 #include "TopBarController.h"
@@ -15,9 +14,10 @@
 #include "BottomBarController.h"
 #include "MainConsoleController.h"
 #include "BoardController.h"
+#include "UsbStatusBarController.h"
 
 #include <memory>
-
+#include <chrono>
 
 enum class ScreenType {
     MAIN_CONSOLE,
@@ -39,7 +39,7 @@ private:
     MediaManager usbMediaFiles;
     MediaManager playlistMediaFiles;
     PlaylistManager playlists;
-    UsbManager usbManager;
+    std::shared_ptr<UsbManager> usbManager;
     
     // Controllers
     std::unique_ptr<TopBarController> topBarCtrl;
@@ -51,13 +51,21 @@ private:
     std::unique_ptr<MetadataController> metadataCtrl;
     std::unique_ptr<MainConsoleController> mainConsoleCtrl;
     std::unique_ptr<BoardController> boardCtrl;
-
-    std::unique_ptr<UsbStatusBar> usbStatusBar;
+    std::unique_ptr<UsbStatusBarController> usbStatusBarCtrl;
     
     // State
     ScreenType currentScreen;
     int termHeight, termWidth;
     bool shouldExit;
+    
+    // Auto-refresh tracking
+    std::chrono::steady_clock::time_point lastPcRefreshCheck;
+    std::chrono::steady_clock::time_point lastUsbRefreshCheck;
+    size_t lastPcFileCount;
+    size_t lastUsbFileCount;
+    bool lastUsbConnectedState;
+    
+    static constexpr int REFRESH_CHECK_INTERVAL_MS = 2000; // Check every 2 seconds
 
 public:
     MainController();
@@ -75,6 +83,11 @@ private:
     void updateViews();
     void handleResize();
     
+    // Auto-refresh methods
+    void checkAndRefreshPC();
+    void checkAndRefreshUSB();
+    void refreshCurrentScreen();
+    
     // Callback handlers
     void onTopBarButtonClick(int btnIndex);
     void onMediaFileClick(int index);
@@ -83,6 +96,7 @@ private:
     void onPlaylistDoubleClick(int index);
     void onAddPlaylistSave();
     void onAddPlaylistCancel();
+    void onUsbEject();
 };
 
 #endif

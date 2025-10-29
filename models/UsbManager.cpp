@@ -1,18 +1,5 @@
 #include "UsbManager.h"
-#include <array>
-#include <regex>
-#include <thread>
-#include <chrono>
-#include <cstdlib>
-#include <cstdio>
-#include <memory>
-#include <sstream>
-#include <algorithm>
-#include <filesystem>
-#include <thread>
-
 namespace fs = std::filesystem;
-
 UsbManager::UsbManager() 
     : usbConnected(false),
       ejectInProgress(false),
@@ -280,7 +267,7 @@ void UsbManager::copyAllMp3ToLocal(const std::string& mountPath) {
     for (auto& p : fs::recursive_directory_iterator(mountPath)) {
         if (p.is_regular_file() && p.path().extension() == ".mp3") {
             try {
-                fs::path dest = destRoot / p.path().filename(); // ✅ chỉ giữ tên file
+                fs::path dest = destRoot / p.path().filename(); 
                 fs::copy_file(p.path(), dest, fs::copy_options::overwrite_existing);
                 copiedCount++;
             } catch (const std::exception& e) {

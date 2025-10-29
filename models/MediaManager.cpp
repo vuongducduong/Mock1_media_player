@@ -21,6 +21,10 @@ void MediaManager::load() {
             }
         }
     }
+    std::sort(mediafiles.begin(), mediafiles.end(), 
+        [](const std::shared_ptr<MediaFile>& a, const std::shared_ptr<MediaFile>& b) {
+            return a->getFilename() < b->getFilename();
+        });
 }
 
 void MediaManager::clear() {

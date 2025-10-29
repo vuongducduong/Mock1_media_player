@@ -1,14 +1,18 @@
 #include "MainController.h"
 
-
 MainController::MainController() 
-    : currentScreen(ScreenType::MAIN_CONSOLE),
-      pcMediaFiles("./music"),
+    : pcMediaFiles("./music"),
       usbMediaFiles("./usb"),
-      shouldExit(false){      
-      int termWidth = getmaxx(stdscr);
-      usbStatusBar = std::make_unique<UsbStatusBar>(termWidth);
-    }
+      usbManager(std::make_shared<UsbManager>()),  
+      currentScreen(ScreenType::MAIN_CONSOLE),
+      shouldExit(false),
+      lastPcFileCount(0),
+      lastUsbFileCount(0),
+      lastUsbConnectedState(false) {
+    
+    lastPcRefreshCheck = std::chrono::steady_clock::now();
+    lastUsbRefreshCheck = std::chrono::steady_clock::now();
+}
 
 MainController::~MainController() {
     endwin();
@@ -34,6 +38,12 @@ bool MainController::init() {
         std::cerr << "Failed to initialize audio\n";
         return false;
     }
+    
+    usbStatusBarCtrl = std::make_unique<UsbStatusBarController>(usbManager, termWidth);
+    usbStatusBarCtrl->init();
+    usbStatusBarCtrl->setOnEject([this]() {
+        onUsbEject();
+    });
     
     // Tạo controllers
     topBarCtrl = std::make_unique<TopBarController>(termWidth);
@@ -113,20 +123,24 @@ bool MainController::init() {
     
     metadataCtrl = std::make_unique<MetadataController>(
         termHeight - 8, termWidth, 4, 0);
-    
-    // Tạo player controller
+
     playerCtrl = std::make_unique<PlayerController>(&mediaPlayer);
-    
-    // Tạo MainConsoleController
+
     mainConsoleCtrl = std::make_unique<MainConsoleController>(
         termHeight - 8, termWidth, 4, 0);
-    // Tạo BoardController
+
     boardCtrl = std::make_unique<BoardController>(
         termHeight - 8, termWidth, 4, 0);
+
     // Load dữ liệu
     pcMediaFiles.load();
     usbMediaFiles.load();
     playlists.load();
+    
+    // Initialize file counts
+    lastPcFileCount = pcMediaFiles.getAllMediaFiles().size();
+    lastUsbFileCount = usbMediaFiles.getAllMediaFiles().size();
+    lastUsbConnectedState = usbManager->isUsbConnected();
     
     // Vẽ màn hình ban đầu
     updateViews();
@@ -137,7 +151,99 @@ bool MainController::init() {
 void MainController::run() {
     while (!shouldExit) {
         handleInput();
+        
+        // Check for file changes periodically
+        checkAndRefreshPC();
+        checkAndRefreshUSB();
+        
         updateViews();
+    }
+}
+
+void MainController::checkAndRefreshPC() {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - lastPcRefreshCheck).count();
+    
+    if (elapsed >= REFRESH_CHECK_INTERVAL_MS) {
+        lastPcRefreshCheck = now;
+        
+        // Temporarily load to check file count
+        size_t oldCount = lastPcFileCount;
+        pcMediaFiles.load();
+        size_t newCount = pcMediaFiles.getAllMediaFiles().size();
+        
+        if (newCount != oldCount) {
+            lastPcFileCount = newCount;
+            
+            // If we're on THIS_PC screen, refresh the view
+            if (currentScreen == ScreenType::THIS_PC) {
+                refreshCurrentScreen();
+            }
+        }
+    }
+}
+
+void MainController::checkAndRefreshUSB() {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - lastUsbRefreshCheck).count();
+    
+    if (elapsed >= REFRESH_CHECK_INTERVAL_MS) {
+        lastUsbRefreshCheck = now;
+        
+        // Check USB connection state
+        bool currentUsbState = usbManager->isUsbConnected();
+        
+        // Detect USB disconnection
+        if (lastUsbConnectedState && !currentUsbState) {
+            lastUsbConnectedState = currentUsbState;
+            
+            // Auto-refresh USB screen if we're viewing it
+            if (currentScreen == ScreenType::USB) {
+                usbMediaFiles.load();
+                lastUsbFileCount = usbMediaFiles.getAllMediaFiles().size();
+                refreshCurrentScreen();
+            }
+        }
+        
+        // Detect USB connection or file changes
+        if (currentUsbState) {
+            size_t oldCount = lastUsbFileCount;
+            usbMediaFiles.load();
+            size_t newCount = usbMediaFiles.getAllMediaFiles().size();
+            
+            if (newCount != oldCount || !lastUsbConnectedState) {
+                lastUsbFileCount = newCount;
+                lastUsbConnectedState = currentUsbState;
+                
+                // If we're on USB screen, refresh the view
+                if (currentScreen == ScreenType::USB) {
+                    refreshCurrentScreen();
+                }
+            }
+        }
+        
+        lastUsbConnectedState = currentUsbState;
+    }
+}
+
+void MainController::refreshCurrentScreen() {
+    switch (currentScreen) {
+        case ScreenType::THIS_PC:
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->setCollection(&pcMediaFiles);
+            }
+            break;
+            
+        case ScreenType::USB:
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->setCollection(&usbMediaFiles);
+            }
+            break;
+            
+        default:
+            break;
     }
 }
 
@@ -186,9 +292,15 @@ void MainController::handleInput() {
 }
 
 void MainController::handleKeyboard(int ch) {
-    // Metadata screen có priority cao nhất
+    // USB Status Bar có priority cao (xử lý phím 'e' để eject)
+    if (usbStatusBarCtrl && usbStatusBarCtrl->handleKey(ch)) {
+        updateViews();
+        return;
+    }
+    
+    // Metadata screen có priority cao
     if (currentScreen == ScreenType::METADATA) {
-        if (metadataCtrl->handleKey(ch)) {
+        if (metadataCtrl && metadataCtrl->handleKey(ch)) {
             updateViews();
             return;
         }
@@ -203,9 +315,9 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handleKeyLeft();
+                if (mediaFileListCtrl) mediaFileListCtrl->handleKeyLeft();
             } else {
-                topBarCtrl->handleLeft();
+                if (topBarCtrl) topBarCtrl->handleLeft();
             }
             break;
             
@@ -213,9 +325,9 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handleKeyRight();
+                if (mediaFileListCtrl) mediaFileListCtrl->handleKeyRight();
             } else {
-                topBarCtrl->handleRight();
+                if (topBarCtrl) topBarCtrl->handleRight();
             }
             break;
             
@@ -223,7 +335,7 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handleKeyUp();
+                if (mediaFileListCtrl) mediaFileListCtrl->handleKeyUp();
             }
             break;
             
@@ -231,7 +343,7 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handleKeyDown();
+                if (mediaFileListCtrl) mediaFileListCtrl->handleKeyDown();
             }
             break;
             
@@ -239,7 +351,7 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handlePageDown();
+                if (mediaFileListCtrl) mediaFileListCtrl->handlePageDown();
             }
             break;
             
@@ -247,7 +359,7 @@ void MainController::handleKeyboard(int ch) {
             if (currentScreen == ScreenType::THIS_PC || 
                 currentScreen == ScreenType::USB || 
                 currentScreen == ScreenType::PLAYLIST_MEDIAFILES) {
-                mediaFileListCtrl->handlePageUp();
+                if (mediaFileListCtrl) mediaFileListCtrl->handlePageUp();
             }
             break;
             
@@ -263,81 +375,83 @@ void MainController::handleKeyboard(int ch) {
             
         case 'p':
         case 'P':
-            playerCtrl->togglePlayPause();
+            if (playerCtrl) playerCtrl->togglePlayPause();
             break;
             
         case 'n':
         case 'N':
-            playerCtrl->playNext();
+            if (playerCtrl) playerCtrl->playNext();
             break;
             
         case 'b':
         case 'B':
-            playerCtrl->playPrevious();
+            if (playerCtrl) playerCtrl->playPrevious();
             break;
             
         case '+':
         case '=':
-            playerCtrl->increaseVolume();
-            bottomBarCtrl->setVolume(mediaPlayer.getVolume());
+            if (playerCtrl) {
+                playerCtrl->increaseVolume();
+                if (bottomBarCtrl) bottomBarCtrl->setVolume(mediaPlayer.getVolume());
+            }
             break;
             
         case '-':
         case '_':
-            playerCtrl->decreaseVolume();
-            bottomBarCtrl->setVolume(mediaPlayer.getVolume());
-            break;
-        case 'e':  // nhấn phím e để chọn Eject
-            if (usbStatusBar)
-                usbStatusBar->toggleEjectSelected();
-
-            if (usbManager.isUsbConnected()) {
-                usbManager.ejectAll();
+            if (playerCtrl) {
+                playerCtrl->decreaseVolume();
+                if (bottomBarCtrl) bottomBarCtrl->setVolume(mediaPlayer.getVolume());
             }
             break;
     }
 }
 
 void MainController::handleMouse(int x, int y, int button) {
+    // USB Status Bar có priority cao nhất (xử lý click vào nút Eject)
+    if (usbStatusBarCtrl && usbStatusBarCtrl->handleClick(x, y)) {
+        updateViews();
+        return;
+    }
+    
     // Metadata screen có priority
     if (currentScreen == ScreenType::METADATA) {
-       int localY = y-4;
-        if (metadataCtrl->handleClick(x, localY)) {
+        int localY = y - 4;
+        if (metadataCtrl && metadataCtrl->handleClick(x, localY)) {
             updateViews();
             return;
         }
     }
     
     // Click vào top bar
-    if (y>0 && y < 3) {
-        topBarCtrl->handleClick(x); 
+    if (y > 0 && y < 3) {
+        if (topBarCtrl) topBarCtrl->handleClick(x); 
         return;
     }
     
     // Click vào bottom bar
     if (y >= termHeight - 4) {
         int localY = y - (termHeight - 4);
-        bottomBarCtrl->handleClick(x, localY);
+        if (bottomBarCtrl) bottomBarCtrl->handleClick(x, localY);
         return;
     }
     
     // Click vào main area
-   int localY = y-4;
+    int localY = y - 4;
     int localX = x;
     
     switch (currentScreen) {
         case ScreenType::THIS_PC:
         case ScreenType::USB:
         case ScreenType::PLAYLIST_MEDIAFILES:
-            mediaFileListCtrl->handleClick(localX, localY, button);
+            if (mediaFileListCtrl) mediaFileListCtrl->handleClick(localX, localY, button);
             break;
             
         case ScreenType::PLAYLIST_LIST:
-            playlistCtrl->handleClick(localX, localY, button);
+            if (playlistCtrl) playlistCtrl->handleClick(localX, localY, button);
             break;
             
         case ScreenType::ADD_PLAYLIST:
-            addPlaylistCtrl->handleClick(localX, localY);
+            if (addPlaylistCtrl) addPlaylistCtrl->handleClick(localX, localY);
             break;
             
         default:
@@ -350,23 +464,30 @@ void MainController::handleResize() {
     clear();
     refresh();
     
+    // Resize USB Status Bar Controller
+    if (usbStatusBarCtrl) {
+        usbStatusBarCtrl->resize(termWidth);
+    }
+    
     // Resize tất cả controllers
-    topBarCtrl->resize(termWidth);
-    mediaFileListCtrl->resize(termHeight - 8, termWidth, 4, 0);
-    bottomBarCtrl->resize(termWidth, termHeight - 4);
-    playlistCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    if (topBarCtrl) topBarCtrl->resize(termWidth);
+    if (mediaFileListCtrl) mediaFileListCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    if (bottomBarCtrl) bottomBarCtrl->resize(termWidth, termHeight - 4);
+    if (playlistCtrl) playlistCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    
     metadataCtrl = std::make_unique<MetadataController>(
         termHeight - 8, termWidth, 4, 0);
-    addPlaylistCtrl->resize(termHeight - 8, termWidth, 4, 0);
-    mainConsoleCtrl->resize(termHeight - 8, termWidth, 4, 0);
-    boardCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    
+    if (addPlaylistCtrl) addPlaylistCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    if (mainConsoleCtrl) mainConsoleCtrl->resize(termHeight - 8, termWidth, 4, 0);
+    if (boardCtrl) boardCtrl->resize(termHeight - 8, termWidth, 4, 0);
     
     updateViews();
 }
 
 // Callback handlers
 void MainController::onTopBarButtonClick(int btnIndex) {
-    topBarCtrl->setSelectedButton(btnIndex);
+    if (topBarCtrl) topBarCtrl->setSelectedButton(btnIndex);
     
     switch (btnIndex) {
         case 0: switchScreen(ScreenType::MAIN_CONSOLE); break;
@@ -383,7 +504,7 @@ void MainController::onTopBarButtonClick(int btnIndex) {
 }
 
 void MainController::onMediaFileClick(int index) {
-    playerCtrl->play(index);
+    if (playerCtrl) playerCtrl->play(index);
 }
 
 void MainController::onMediaFileRightClick(int index) {
@@ -392,7 +513,7 @@ void MainController::onMediaFileRightClick(int index) {
     else if (currentScreen == ScreenType::USB) collection = &usbMediaFiles;
     else if (currentScreen == ScreenType::PLAYLIST_MEDIAFILES) collection = &playlistMediaFiles;
     
-    if (collection) {
+    if (collection && metadataCtrl) {
         auto mediafile = collection->getMediaFile(index);
         if (mediafile) {
             MediaMetadata* meta = mediafile->getMediaMetadata();
@@ -412,7 +533,7 @@ void MainController::onPlaylistSelect(int index) {
 
 void MainController::onPlaylistDoubleClick(int index) {
     auto playlist = playlists.getPlaylist(index);
-    if (playlist) {
+    if (playlist && playerCtrl) {
         playlist->load();
         playlistMediaFiles = playlist->getMediaFiles();
         playerCtrl->setCollection(&playlistMediaFiles);
@@ -421,6 +542,8 @@ void MainController::onPlaylistDoubleClick(int index) {
 }
 
 void MainController::onAddPlaylistSave() {
+    if (!addPlaylistCtrl) return;
+    
     if (addPlaylistCtrl->getMode() == AddPlaylistMode::CREATE) {
         playlists.createPlaylist(
             addPlaylistCtrl->getPlaylistName(),
@@ -443,37 +566,58 @@ void MainController::onAddPlaylistCancel() {
     switchScreen(ScreenType::PLAYLIST_LIST);
 }
 
+void MainController::onUsbEject() {
+    // Force immediate refresh after eject
+    usbMediaFiles.load();
+    lastUsbFileCount = usbMediaFiles.getAllMediaFiles().size();
+    lastUsbConnectedState = usbManager->isUsbConnected();
+    
+    // If we're on USB screen, refresh the view immediately
+    if (currentScreen == ScreenType::USB && mediaFileListCtrl) {
+        mediaFileListCtrl->setCollection(&usbMediaFiles);
+        updateViews();
+    }
+}
+
 void MainController::switchScreen(ScreenType screen) {
     currentScreen = screen;
     
     switch (screen) {
         case ScreenType::THIS_PC:
             pcMediaFiles.load();
-            playerCtrl->setCollection(&pcMediaFiles);
-            mediaFileListCtrl->setCollection(&pcMediaFiles);
-            mediaFileListCtrl->setTitle("This PC - Media");
+            lastPcFileCount = pcMediaFiles.getAllMediaFiles().size();
+            if (playerCtrl) playerCtrl->setCollection(&pcMediaFiles);
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->setCollection(&pcMediaFiles);
+                mediaFileListCtrl->setTitle("This PC - Media");
+            }
             break;
             
         case ScreenType::USB:
             usbMediaFiles.load();
-            playerCtrl->setCollection(&usbMediaFiles);
-            mediaFileListCtrl->setCollection(&usbMediaFiles);
-            mediaFileListCtrl->setTitle("USB - Media");
+            lastUsbFileCount = usbMediaFiles.getAllMediaFiles().size();
+            if (playerCtrl) playerCtrl->setCollection(&usbMediaFiles);
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->setCollection(&usbMediaFiles);
+                mediaFileListCtrl->setTitle("USB - Media");
+            }
             break;
             
         case ScreenType::PLAYLIST_LIST:
             playlists.load();
-            playlistCtrl->updateView();
+            if (playlistCtrl) playlistCtrl->updateView();
             break;
             
         case ScreenType::PLAYLIST_MEDIAFILES:
-            playerCtrl->setCollection(&playlistMediaFiles);
-            mediaFileListCtrl->setCollection(&playlistMediaFiles);
-            mediaFileListCtrl->setTitle("Playlist Media " + playlistMediaFiles.getFolder());
+            if (playerCtrl) playerCtrl->setCollection(&playlistMediaFiles);
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->setCollection(&playlistMediaFiles);
+                mediaFileListCtrl->setTitle("Playlist Media " + playlistMediaFiles.getFolder());
+            }
             break;
             
         case ScreenType::ADD_PLAYLIST:
-            addPlaylistCtrl->draw();
+            if (addPlaylistCtrl) addPlaylistCtrl->draw();
             break;
             
         default:
@@ -482,50 +626,49 @@ void MainController::switchScreen(ScreenType screen) {
 }
 
 void MainController::updateViews() {
-    getmaxyx(stdscr, termHeight, termWidth);
-    // --- Cập nhật trạng thái USB ---
-    usbManager.updateStatus();
-
-    // Nếu terminal thay đổi kích thước → tạo lại thanh USB
-    if (!usbStatusBar || usbStatusBar->getWidth() != termWidth) {
-        usbStatusBar = std::make_unique<UsbStatusBar>(termWidth);
+    // QUAN TRỌNG: Cập nhật và vẽ USB Status Bar TRƯỚC TIÊN
+    if (usbStatusBarCtrl) {
+        usbStatusBarCtrl->update();
+        usbStatusBarCtrl->draw();
     }
 
-    // Cập nhật dữ liệu hiển thị cho thanh USB
-    usbStatusBar->render(usbManager);
-
-    // Vẽ thanh USB
-    usbStatusBar->draw();
-
-    // Vẽ top bar luôn
-    topBarCtrl->draw();
+    // Vẽ top bar
+    if (topBarCtrl) {
+        topBarCtrl->draw();
+    }
     
     // Vẽ main content theo screen
     switch (currentScreen) {
         case ScreenType::MAIN_CONSOLE:
-            mainConsoleCtrl->draw();
+            if (mainConsoleCtrl) mainConsoleCtrl->draw();
             break;
             
         case ScreenType::THIS_PC:
         case ScreenType::USB:
         case ScreenType::PLAYLIST_MEDIAFILES:
-            mediaFileListCtrl->updateView();
-            mediaFileListCtrl->draw();
+            if (mediaFileListCtrl) {
+                mediaFileListCtrl->updateView();
+                mediaFileListCtrl->draw();
+            }
             break;
             
         case ScreenType::PLAYLIST_LIST:
-            playlistCtrl->updateView();
-            playlistCtrl->draw();
+            if (playlistCtrl) {
+                playlistCtrl->updateView();
+                playlistCtrl->draw();
+            }
             break;
             
         case ScreenType::ADD_PLAYLIST:
-            addPlaylistCtrl->draw();
+            if (addPlaylistCtrl) addPlaylistCtrl->draw();
             break;
+            
         case ScreenType::BOARD:
-            boardCtrl->draw();
+            if (boardCtrl) boardCtrl->draw();
             break;
+            
         case ScreenType::METADATA:
-            metadataCtrl->draw();
+            if (metadataCtrl) metadataCtrl->draw();
             break;
     }
     
@@ -544,14 +687,16 @@ void MainController::updateViews() {
         }
     }
     
-    bottomBarCtrl->updateMediaInfo(
-        currentMediaFileName,
-        mediaPlayer.getProgress(),
-        mediaPlayer.getCurrentTime(),
-        mediaPlayer.getDuration(),
-        mediaPlayer.getState() == PlayerState::PAUSED
-    );
-    bottomBarCtrl->draw();
+    if (bottomBarCtrl) {
+        bottomBarCtrl->updateMediaInfo(
+            currentMediaFileName,
+            mediaPlayer.getProgress(),
+            mediaPlayer.getCurrentTime(),
+            mediaPlayer.getDuration(),
+            mediaPlayer.getState() == PlayerState::PAUSED
+        );
+        bottomBarCtrl->draw();
+    }
     
     doupdate();
 }

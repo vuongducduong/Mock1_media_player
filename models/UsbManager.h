@@ -5,6 +5,17 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include <array>
+#include <regex>
+#include <thread>
+#include <chrono>
+#include <cstdlib>
+#include <cstdio>
+#include <memory>
+#include <sstream>
+#include <algorithm>
+#include <filesystem>
+
 
 class UsbManager {
 public:
