@@ -4,6 +4,8 @@
 #include "../models/MediaManager.h"
 #include "../models/PlaylistManager.h"
 #include "../models/MediaPlayer.h"
+#include "../models/UsbManager.h"
+#include "../views/UsbStatusBar.h"
 #include "PlayerController.h"
 #include "MetadataController.h"
 #include "TopBarController.h"
@@ -13,6 +15,7 @@
 #include "BottomBarController.h"
 #include "MainConsoleController.h"
 #include "BoardController.h"
+
 #include <memory>
 
 
@@ -36,6 +39,7 @@ private:
     MediaManager usbMediaFiles;
     MediaManager playlistMediaFiles;
     PlaylistManager playlists;
+    UsbManager usbManager;
     
     // Controllers
     std::unique_ptr<TopBarController> topBarCtrl;
@@ -47,6 +51,8 @@ private:
     std::unique_ptr<MetadataController> metadataCtrl;
     std::unique_ptr<MainConsoleController> mainConsoleCtrl;
     std::unique_ptr<BoardController> boardCtrl;
+
+    std::unique_ptr<UsbStatusBar> usbStatusBar;
     
     // State
     ScreenType currentScreen;

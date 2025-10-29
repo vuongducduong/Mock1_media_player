@@ -42,7 +42,7 @@ void BottomBarView::draw() {
     int spacing = 4;
     int total_width = 0;
     if(getPaused()){
-        controls[1]={"▶"};
+        controls[1]={"⏯"};
     }
     else{
         controls[1]={"⏸"};
@@ -58,19 +58,17 @@ void BottomBarView::draw() {
     for (size_t i = 0; i < controls.size(); ++i) {
         if ((int)i == activeControlIndex) {
             wattron(window, A_REVERSE | A_BOLD); // hiệu ứng sáng nổi bật
-            mvwprintw(window, y_controls, xx, "[%s]", controls[i].c_str());
+            mvwprintw(window, y_controls, xx, "%s", controls[i].c_str());
             wattroff(window, A_REVERSE | A_BOLD);
             xx += 2 + controls[i].size();
             if (i + 1 < controls.size()) xx += spacing;
         } else {
-            mvwprintw(window, y_controls, xx, "[%s]", controls[i].c_str());
+            mvwprintw(window, y_controls, xx, "%s", controls[i].c_str());
             xx += 2 + controls[i].size();
             if (i + 1 < controls.size()) xx += spacing;
         }
     }
-        //     mvwprintw(window, y_controls, xx, "[%s]", controls[i].c_str());
-        // xx += 2 + controls[i].size();
-        // if (i + 1 < controls.size()) xx += spacing;
+
     wattroff(window, A_DIM);
 
     std::string volText = "Volume: " + std::to_string(volumePercent) + "%";
