@@ -115,6 +115,12 @@ bool MainController::init() {
     // Tạo player controller
     playerCtrl = std::make_unique<PlayerController>(&mediaPlayer);
     
+    // Tạo MainConsoleController
+    mainConsoleCtrl = std::make_unique<MainConsoleController>(
+        termHeight - 7, termWidth, 3, 0);
+    // Tạo BoardController
+    boardCtrl = std::make_unique<BoardController>(
+        termHeight - 7, termWidth, 3, 0);
     // Load dữ liệu
     pcMediaFiles.load();
     usbMediaFiles.load();
@@ -342,6 +348,8 @@ void MainController::handleResize() {
     metadataCtrl = std::make_unique<MetadataController>(
         termHeight - 7, termWidth, 3, 0);
     addPlaylistCtrl->resize(termHeight - 7, termWidth, 3, 0);
+    mainConsoleCtrl->resize(termHeight - 7, termWidth, 3, 0);
+    boardCtrl->resize(termHeight - 7, termWidth, 3, 0);
     
     updateViews();
 }
@@ -355,7 +363,7 @@ void MainController::onTopBarButtonClick(int btnIndex) {
         case 1: switchScreen(ScreenType::THIS_PC); break;
         case 2: switchScreen(ScreenType::USB); break;
         case 3: switchScreen(ScreenType::PLAYLIST_LIST); break;
-        case 4: /* Board */ break;
+        case 4: switchScreen(ScreenType::BOARD); break;
         case 5: 
             shouldExit = true;
             endwin();
@@ -472,6 +480,7 @@ void MainController::updateViews() {
     // Vẽ main content theo screen
     switch (currentScreen) {
         case ScreenType::MAIN_CONSOLE:
+            mainConsoleCtrl->draw();
             break;
             
         case ScreenType::THIS_PC:
@@ -489,7 +498,9 @@ void MainController::updateViews() {
         case ScreenType::ADD_PLAYLIST:
             addPlaylistCtrl->draw();
             break;
-            
+        case ScreenType::BOARD:
+            boardCtrl->draw();
+            break;
         case ScreenType::METADATA:
             metadataCtrl->draw();
             break;

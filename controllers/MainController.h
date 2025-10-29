@@ -11,6 +11,8 @@
 #include "PlaylistController.h"
 #include "AddPlaylistController.h"
 #include "BottomBarController.h"
+#include "MainConsoleController.h"
+#include "BoardController.h"
 #include <memory>
 
 
@@ -43,6 +45,8 @@ private:
     std::unique_ptr<AddPlaylistController> addPlaylistCtrl;
     std::unique_ptr<PlayerController> playerCtrl;
     std::unique_ptr<MetadataController> metadataCtrl;
+    std::unique_ptr<MainConsoleController> mainConsoleCtrl;
+    std::unique_ptr<BoardController> boardCtrl;
     
     // State
     ScreenType currentScreen;

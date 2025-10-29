@@ -1,7 +1,7 @@
 #include "BottomBarView.h"
 BottomBarView::BottomBarView(int w, int y) 
     : BaseView(4, w, y, 0), progress(0), currentTime(0), totalTime(0), isPaused(false) {
-    controls = {"<<", "||", ">>", "Vol-", "Vol+"};
+    controls = {"⏮", "⏸", "⏭", "🔉", "🔊"};
 }
 
 void BottomBarView::draw() {
@@ -42,10 +42,10 @@ void BottomBarView::draw() {
     int spacing = 4;
     int total_width = 0;
     if(getPaused()){
-        controls[1]={"|>"};
+        controls[1]={"▶"};
     }
     else{
-        controls[1]={"||"};
+        controls[1]={"⏸"};
     }
     for (const auto& c : controls) {
         total_width += 2 + c.size();
